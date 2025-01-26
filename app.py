@@ -3,8 +3,8 @@ from flask import Flask, redirect, request, render_template
 app = Flask(__name__)
 
 # TikTok API credentials
-CLIENT_KEY = "awc51tbucw31foye"  # Replace with your actual Client Key
-CLIENT_SECRET = "DoGijx7458JGVOI2ke0U1eIDIYRONxBU"  # Replace with your actual Client Secret
+CLIENT_KEY = "sbawg3wqzsusdoh4tt"  # Replace with your actual Client Key
+CLIENT_SECRET = "YX8gMe5OhNXovaw9Uj3IGSoMYOtYH7KR"  # Replace with your actual Client Secret
 REDIRECT_URI = "https://testing-integrations.onrender.com/callback/"  # Replace with your Render URL
 
 # Home page with a button
