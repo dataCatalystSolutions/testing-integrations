@@ -7,11 +7,8 @@ app = Flask(__name__)
 CLIENT_KEY = 'sbawg3wqzsusdoh4tt'  # Replace with your actual Client Key
 CLIENT_SECRET = 'YX8gMe5OhNXovaw9Uj3IGSoMYOtYH7KR'  # Replace with your actual Client Secret
 REDIRECT_URI = 'https://testing-integrations.onrender.com/callback/'  # Replace with your Render URL
-<<<<<<< HEAD
 ACCESS_TOKEN = None  # To store the user's access token
 
-=======
->>>>>>> origin/main
 
 # Home page with a button
 @app.route('/')
