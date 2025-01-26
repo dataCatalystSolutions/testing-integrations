@@ -17,10 +17,10 @@ def home():
 def start_auth():
     scope = "user.info.basic"
     oauth_url = (
-        f"https://www.tiktok.com/auth/authorize/"
+        f"https://www.tiktok.com/v2/auth/authorize/"
         f"?client_key={CLIENT_KEY}"
-        f"&scope={scope}"
         f"&response_type=code"
+        f"&scope={scope}"
         f"&redirect_uri={REDIRECT_URI}"
         f"&state=test_state"
     )
