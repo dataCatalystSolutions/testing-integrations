@@ -7,11 +7,8 @@ app = Flask(__name__)
 CLIENT_KEY = 'sbawg3wqzsusdoh4tt'  # Replace with your actual Client Key
 CLIENT_SECRET = 'YX8gMe5OhNXovaw9Uj3IGSoMYOtYH7KR'  # Replace with your actual Client Secret
 REDIRECT_URI = 'https://testing-integrations.onrender.com/callback/'  # Replace with your Render URL
-<<<<<<< HEAD
 ACCESS_TOKEN = None  # To store the user's access token
 
-=======
->>>>>>> origin/main
 
 # Home page with a button
 @app.route('/')
@@ -61,14 +58,22 @@ def upload_video():
     if not ACCESS_TOKEN:
         return "User is not authenticated. Please log in first.", 401
     
+    file = request.files.get('video')
+    if not file:
+        return "No file uploaded.", 400
+    
+    # Save the file temporarily
+    file_path = f"./uploads/{file.filename}"
+    file.save(file_path)
+    
     # Step 1: Initialize video upload
     init_url = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/"
     headers = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
     payload = {
         "source_info": {
             "source": "FILE_UPLOAD",
-            "video_size": 12345678,  # Replace with actual video size in bytes
-            "chunk_size": 1234567,  # Replace with chunk size in bytes
+            "video_size": os.path.getsize(file_path),  # Get file size
+            "chunk_size": os.path.getsize(file_path),  # Full file size for single-chunk upload
             "total_chunk_count": 1  # Number of chunks (1 for single upload)
         }
     }
@@ -78,23 +83,19 @@ def upload_video():
     
     data = response.json()
     upload_url = data["upload_url"]
-    publish_id = data["publish_id"]
     
     # Step 2: Upload the video file (single chunk assumed here)
-    with open("video.mp4", "rb") as video_file:
+    with open(file_path, "rb") as video_file:
         upload_response = requests.put(
             upload_url,
             headers={"Content-Type": "video/mp4"},
             data=video_file
         )
     if upload_response.status_code != 200:
-        return jsonify({"error": "Failed to upload video.", "details": upload_response.json()}), 400
-    
-    # Step 3: Check the status of the post
-    status_url = "https://open.tiktokapis.com/v2/post/publish/status/fetch/"
-    status_payload = {"publish_id": publish_id}
-    status_response = requests.post(status_url, headers=headers, json=status_payload)
-    return jsonify(status_response.json())
+        return f"Failed to upload video: {upload_response.text}", 400
+
+    return "Video uploaded successfully!", 200
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
