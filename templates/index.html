@@ -3,19 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TikTok Integration Test</title>
+    <title>TikTok Video Uploader</title>
 </head>
 <body>
-    <h1>Test TikTok Integration</h1>
-    <p>Click the button below to start the TikTok OAuth process:</p>
-    <form action="/start-auth" method="get">
-        <button type="submit">Start TikTok OAuth</button>
-    </form>
-
-    <h2>Upload Video</h2>
-    <form action="/upload-video" method="post" enctype="multipart/form-data">
-        <input type="file" name="video" accept="video/mp4" required>
-        <button type="submit">Upload Video</button>
-    </form>
+    <h1>TikTok Video Uploader</h1>
+    <button onclick="window.location.href='/start-auth'">Post Video to TikTok</button>
 </body>
 </html>
