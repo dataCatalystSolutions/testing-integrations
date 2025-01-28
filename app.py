@@ -13,10 +13,10 @@ CLIENT_KEY = 'sbawg3wqzsusdoh4tt'
 CLIENT_SECRET = 'YX8gMe5OhNXovaw9Uj3IGSoMYOtYH7KR'
 REDIRECT_URI = 'https://testing-integrations.onrender.com/callback/'  # Update for deployment
 
-# Step 1: Start OAuth Flow
+# Home Page - Show login or upload options
 @app.route("/")
 def home():
-    return '<a href="/start-auth">Login with TikTok</a>'  # Simple login link
+    return render_template("index.html")
 
 @app.route("/start-auth")
 def start_auth():
@@ -99,6 +99,14 @@ def refresh_token():
         return "Access token refreshed successfully!", 200
     else:
         return f"Failed to refresh access token: {response.text}", 400
+    
+# Route to display the upload form
+@app.route("/upload-video")
+def upload_video():
+    if "access_token" not in session:
+        return redirect(url_for("start_auth"))  # Redirect if not logged in
+    
+    return render_template("upload.html")  # Render the upload form
 
 
 if __name__ == "__main__":

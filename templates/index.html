@@ -6,9 +6,15 @@
     <title>TikTok Video Uploader</title>
 </head>
 <body>
-    <h1>TikTok Video Uploader</h1>
-    <form action="/post-video" method="get">
-        <button type="submit">Post Video to TikTok</button>
-    </form>
+    <h1>Welcome to TikTok Video Uploader</h1>
+
+    {% if session.get("access_token") %}
+        <p>Logged in! You can now upload a video.</p>
+        <a href="/upload-video"><button>Upload Video</button></a>
+        <a href="/refresh-token"><button>Refresh Token</button></a>
+    {% else %}
+        <p>You are not logged in.</p>
+        <a href="/start-auth"><button>Login with TikTok</button></a>
+    {% endif %}
 </body>
 </html>
