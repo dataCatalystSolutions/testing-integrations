@@ -20,7 +20,7 @@ def home():
 
 @app.route("/start-auth")
 def start_auth():
-    scope = "user.info.basic,video.upload    
+    scope = "user.info.basic,video.upload"
     oauth_url = (
         f"https://www.tiktok.com/v2/auth/authorize/"
         f"?client_key={CLIENT_KEY}"
