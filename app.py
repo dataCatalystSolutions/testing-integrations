@@ -50,8 +50,10 @@ def callback():
     }
     app.logger.info("DEBUG: Sending token request with payload: %s", payload)  # Debugging step 2
 
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
-    response = requests.post(token_url, json=payload)
+    response = requests.post(token_url, data=payload, headers=headers)
+
     app.logger.info("DEBUG: Token Response Status Code: %s", response.status_code)
     app.logger.info("DEBUG: Token Response JSON: %s", response.text)  # Log the full response
 
