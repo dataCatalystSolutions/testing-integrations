@@ -32,6 +32,8 @@ def start_auth():
 @app.route("/callback/")
 def callback():
     code = request.args.get("code")
+    print("DEBUG: Received code from TikTok:", code)  # Debugging step 1
+
     if not code:
         return "Authorization failed or no code received.", 400
 
@@ -43,6 +45,8 @@ def callback():
         "grant_type": "authorization_code",
         "redirect_uri": REDIRECT_URI,
     }
+    print("DEBUG: Sending token request with payload:", payload)  # Debugging step 2
+
 
     response = requests.post(token_url, json=payload)
     print("DEBUG: Token Response Status Code:", response.status_code)
@@ -51,10 +55,7 @@ def callback():
     if response.status_code == 200:
         data = response.json()
         session["access_token"] = data.get("access_token")  # Store token
-        
-        if not session['access_token']:
-            print("ERROR: Access token is missing in response!")
-
+        print("DEBUG: Stored Access Token:", session['access_token'])  # Debugging step 5
         return f"Access Token: {session['access_token']}", 200
     else:
         return f"Failed to obtain access token: {response.text}", 400
