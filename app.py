@@ -45,11 +45,16 @@ def callback():
     }
 
     response = requests.post(token_url, json=payload)
-    
+    print("DEBUG: Token Response Status Code:", response.status_code)
+    print("DEBUG: Token Response JSON:", response.text)  # Log the full response
+
     if response.status_code == 200:
         data = response.json()
         session["access_token"] = data.get("access_token")  # Store token
-        session["refresh_token"] = data.get("refresh_token")  # Store refresh token
+        
+        if not session['access_token']:
+            print("ERROR: Access token is missing in response!")
+
         return f"Access Token: {session['access_token']}", 200
     else:
         return f"Failed to obtain access token: {response.text}", 400
