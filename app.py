@@ -13,6 +13,9 @@ CLIENT_KEY = 'sbawg3wqzsusdoh4tt'
 CLIENT_SECRET = 'YX8gMe5OhNXovaw9Uj3IGSoMYOtYH7KR'
 REDIRECT_URI = 'https://testing-integrations.onrender.com/callback/'  # Update for deployment
 
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure upload folder exists
+
 # Home Page - Show login or upload options
 @app.route("/")
 def home():
@@ -123,12 +126,42 @@ def process_upload():
         return "No video file uploaded.", 400
 
     # Save video file temporarily
-    UPLOAD_FOLDER = "uploads"
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     video_path = os.path.join(UPLOAD_FOLDER, video_file.filename)
     video_file.save(video_path)
+    
+    # Step 1: Initialize TikTok Video Upload
+    init_url = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/"
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
-    return f"Received file {video_file.filename} with caption: {caption}", 200
+    video_size = os.path.getsize(video_path)  # Get file size
+    payload = {
+        "source_info": {
+            "source": "FILE_UPLOAD",
+            "video_size": video_size,
+            "chunk_size": video_size,
+            "total_chunk_count": 1  # Single-chunk upload
+        }
+    }
+
+    # Send request to initialize upload
+    init_response = requests.post(init_url, headers=headers, json=payload)
+    response_data = init_response.json()
+    
+    if init_response.status_code == 200:
+        upload_url = response_data.get("data", {}).get("upload_url")
+        publish_id = response_data.get("data", {}).get("publish_id")
+
+        session["upload_url"] = upload_url  # Store upload URL in session
+        session["publish_id"] = publish_id  # Store publish ID in session
+
+        return jsonify({
+            "message": "Upload initialized!",
+            "upload_url": upload_url,
+            "publish_id": publish_id
+        })
+    else:
+        return f"Failed to initialize video upload: {response_data}", 400
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)  # Enables debug logging
