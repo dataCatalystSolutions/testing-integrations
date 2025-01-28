@@ -1,6 +1,9 @@
 from flask import Flask, redirect, request, render_template, url_for, session
 import requests
 import os
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"  # Needed for session management
@@ -32,7 +35,7 @@ def start_auth():
 @app.route("/callback/")
 def callback():
     code = request.args.get("code")
-    print("DEBUG: Received code from TikTok:", code)  # Debugging step 1
+    app.logger.info("DEBUG: Received code from TikTok: %s", code)  # Debugging step 1
 
     if not code:
         return "Authorization failed or no code received.", 400
@@ -45,20 +48,22 @@ def callback():
         "grant_type": "authorization_code",
         "redirect_uri": REDIRECT_URI,
     }
-    print("DEBUG: Sending token request with payload:", payload)  # Debugging step 2
+    app.logger.info("DEBUG: Sending token request with payload: %s", payload)  # Debugging step 2
 
 
     response = requests.post(token_url, json=payload)
-    print("DEBUG: Token Response Status Code:", response.status_code)
-    print("DEBUG: Token Response JSON:", response.text)  # Log the full response
+    app.logger.info("DEBUG: Token Response Status Code: %s", response.status_code)
+    app.logger.info("DEBUG: Token Response JSON: %s", response.text)  # Log the full response
 
     if response.status_code == 200:
         data = response.json()
         session["access_token"] = data.get("access_token")  # Store token
-        print("DEBUG: Stored Access Token:", session['access_token'])  # Debugging step 5
+        app.logger.info("DEBUG: Stored Access Token: %s", session['access_token'])  # Debugging step 5
         return f"Access Token: {session['access_token']}", 200
     else:
         return f"Failed to obtain access token: {response.text}", 400
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)  # Enables debug logging
+
     app.run(host="0.0.0.0", port=5000)
