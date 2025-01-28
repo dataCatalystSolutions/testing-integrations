@@ -59,6 +59,7 @@ def callback():
         if response.status_code == 200:
             data = response.json()
             session['access_token'] = data.get("access_token")  # Store in session
+            print("DEBUG: Access Token Obtained:", session['access_token'])  # <-- ADD THIS FOR DEBUGGING
             return redirect(url_for('upload_video'))
         else:
             return "Failed to obtain access token.", 400
@@ -77,10 +78,12 @@ def upload_video():
 @app.route('/process-upload', methods=['POST'])
 def process_upload():
     if 'access_token' not in session:
+        print("DEBUG: No access token found in session")  # <-- ADD THIS FOR DEBUGGING
         return redirect(url_for('start_auth'))  # Ensure user is logged in
 
-    access_token = session['access_token']
-
+    access_token = session.get('access_token')
+    print("DEBUG: Using Access Token:", access_token)  # <-- ADD THIS TO CONFIRM TOKEN EXISTS
+    
     # Get uploaded file & caption
     video_file = request.files.get('video')
     caption = request.form.get('caption')
@@ -94,7 +97,10 @@ def process_upload():
 
     # Step 1: Initialize TikTok video upload
     init_url = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/"
-    headers = {"Authorization": f"Bearer {access_token}"}
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
     video_size = os.path.getsize(video_path)
 
     payload = {
@@ -107,6 +113,11 @@ def process_upload():
     }
     
     init_response = requests.post(init_url, headers=headers, json=payload)
+
+    if init_response.status_code == 401:  # 401 = Unauthorized (Token Expired)
+        print("DEBUG: Access token expired. Redirecting to login...")
+        session.pop('access_token', None)  # Remove expired token
+        return redirect(url_for('start_auth'))  # Force user to re-authenticate
 
     if init_response.status_code != 200:
         return f"Failed to initialize video upload: {init_response.text}", 400
