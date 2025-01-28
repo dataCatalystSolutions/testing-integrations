@@ -20,7 +20,7 @@ def home():
 
 @app.route("/start-auth")
 def start_auth():
-    scope = "user.info.basic"
+    scope = "user.info.basic,video.upload    
     oauth_url = (
         f"https://www.tiktok.com/v2/auth/authorize/"
         f"?client_key={CLIENT_KEY}"
@@ -59,13 +59,48 @@ def callback():
 
     if response.status_code == 200:
         data = response.json()
-        session["access_token"] = data.get("access_token")  # Store token
-        app.logger.info("DEBUG: Stored Access Token: %s", session['access_token'])  # Debugging step 5
+        
+        # Store the access token, refresh token, and open_id
+        session["access_token"] = data.get("access_token")
+        session["refresh_token"] = data.get("refresh_token")
+        session["open_id"] = data.get("open_id")
+        
+        app.logger.info("DEBUG: Stored Access Token: %s", session["access_token"])  
+        app.logger.info("DEBUG: Stored Refresh Token: %s", session["refresh_token"])  
+        app.logger.info("DEBUG: Stored Open ID: %s", session["open_id"])  
+
         return f"Access Token: {session['access_token']}", 200
     else:
         return f"Failed to obtain access token: {response.text}", 400
+        
+# Step 3: Token Refresh Endpoint (For When Token Expires)
+@app.route("/refresh-token")
+def refresh_token():
+    if "refresh_token" not in session:
+        return "No refresh token available. Please log in again.", 400
+
+    refresh_url = "https://open.tiktokapis.com/v2/oauth/token/"
+    payload = {
+        "client_key": CLIENT_KEY,
+        "client_secret": CLIENT_SECRET,
+        "grant_type": "refresh_token",
+        "refresh_token": session["refresh_token"],
+    }
+
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    response = requests.post(refresh_url, data=payload, headers=headers)
+
+    if response.status_code == 200:
+        data = response.json()
+        session["access_token"] = data.get("access_token")
+        session["refresh_token"] = data.get("refresh_token")  # Save new refresh token
+
+        app.logger.info("DEBUG: Refreshed Access Token: %s", session["access_token"])
+        return "Access token refreshed successfully!", 200
+    else:
+        return f"Failed to refresh access token: {response.text}", 400
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)  # Enables debug logging
-
     app.run(host="0.0.0.0", port=5000)
