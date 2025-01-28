@@ -108,6 +108,27 @@ def upload_video():
     
     return render_template("upload.html")  # Render the upload form
 
+@app.route("/process-upload", methods=["POST"])
+def process_upload():
+    if "access_token" not in session:
+        return redirect(url_for("start_auth"))  # Ensure user is logged in
+
+    access_token = session["access_token"]
+
+    # Get uploaded file & caption
+    video_file = request.files.get("video")
+    caption = request.form.get("caption")
+
+    if not video_file:
+        return "No video file uploaded.", 400
+
+    # Save video file temporarily
+    UPLOAD_FOLDER = "uploads"
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    video_path = os.path.join(UPLOAD_FOLDER, video_file.filename)
+    video_file.save(video_path)
+
+    return f"Received file {video_file.filename} with caption: {caption}", 200
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)  # Enables debug logging
