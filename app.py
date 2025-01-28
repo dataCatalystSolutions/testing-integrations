@@ -10,27 +10,14 @@ CLIENT_KEY = 'sbawg3wqzsusdoh4tt'
 CLIENT_SECRET = 'YX8gMe5OhNXovaw9Uj3IGSoMYOtYH7KR'
 REDIRECT_URI = 'https://testing-integrations.onrender.com/callback/'  # Update for deployment
 
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# Home Page
-@app.route('/')
+# Step 1: Start OAuth Flow
+@app.route("/")
 def home():
-    return render_template("index.html")
+    return '<a href="/start-auth">Login with TikTok</a>'  # Simple login link
 
-# Step 1: Handle Button Click to Start Authentication or Upload
-@app.route('/post-video')
-def post_video():
-    if 'access_token' not in session:
-        return redirect(url_for('start_auth'))  # Redirect to authentication
-
-    return redirect(url_for('upload_video'))  # Proceed to upload video
-
-# Step 2: OAuth Authentication
-@app.route('/start-auth')
+@app.route("/start-auth")
 def start_auth():
-    """ Redirect user to TikTok for authentication """
-    scope = "user.info.basic,video.upload"
+    scope = "user.info.basic"
     oauth_url = (
         f"https://www.tiktok.com/v2/auth/authorize/"
         f"?client_key={CLIENT_KEY}"
@@ -41,125 +28,31 @@ def start_auth():
     )
     return redirect(oauth_url)
 
-# Step 3: Handle TikTok OAuth Callback
-@app.route('/callback/')
+# Step 2: Handle OAuth Callback
+@app.route("/callback/")
 def callback():
-    """ Handles TikTok redirect and retrieves access token """
-    code = request.args.get('code')
-    if code:
-        token_url = "https://open.tiktokapis.com/v2/oauth/token/"
-        payload = {
-            "client_key": CLIENT_KEY,
-            "client_secret": CLIENT_SECRET,
-            "code": code,
-            "grant_type": "authorization_code",
-            "redirect_uri": REDIRECT_URI,
-        }
-        response = requests.post(token_url, json=payload)
-        if response.status_code == 200:
-            data = response.json()
-            session['access_token'] = data.get("access_token")  # Store in session
-            print("DEBUG: Access Token Obtained:", session['access_token'])  # <-- ADD THIS FOR DEBUGGING
-            return redirect(url_for('upload_video'))
-        else:
-            return "Failed to obtain access token.", 400
-    return "Authorization failed.", 400
+    code = request.args.get("code")
+    if not code:
+        return "Authorization failed or no code received.", 400
 
-
-# Step 4: Upload Video (Placeholder)
-@app.route('/upload-video')
-def upload_video():
-    if 'access_token' not in session:
-        return redirect(url_for('start_auth'))  # Make sure user is logged in
-    
-    return render_template("upload.html")  # Show file upload form
-
-# Step 5: Process Video Upload
-@app.route('/process-upload', methods=['POST'])
-def process_upload():
-    if 'access_token' not in session:
-        print("DEBUG: No access token found in session")  # <-- ADD THIS FOR DEBUGGING
-        return redirect(url_for('start_auth'))  # Ensure user is logged in
-
-    access_token = session.get('access_token')
-    print("DEBUG: Using Access Token:", access_token)  # <-- ADD THIS TO CONFIRM TOKEN EXISTS
-    
-    # Get uploaded file & caption
-    video_file = request.files.get('video')
-    caption = request.form.get('caption')
-
-    if not video_file:
-        return "No video file uploaded.", 400
-
-    # Save video file temporarily
-    video_path = os.path.join(UPLOAD_FOLDER, video_file.filename)
-    video_file.save(video_path)
-
-    # Step 1: Initialize TikTok video upload
-    init_url = "https://open.tiktokapis.com/v2/post/publish/inbox/video/init/"
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
-    video_size = os.path.getsize(video_path)
-
+    token_url = "https://open.tiktokapis.com/v2/oauth/token/"
     payload = {
-        "source_info": {
-            "source": "FILE_UPLOAD",
-            "video_size": video_size,  
-            "chunk_size": video_size,  
-            "total_chunk_count": 1  
-        }
+        "client_key": CLIENT_KEY,
+        "client_secret": CLIENT_SECRET,
+        "code": code,
+        "grant_type": "authorization_code",
+        "redirect_uri": REDIRECT_URI,
     }
+
+    response = requests.post(token_url, json=payload)
     
-    init_response = requests.post(init_url, headers=headers, json=payload)
-
-    if init_response.status_code == 401:  # 401 = Unauthorized (Token Expired)
-        print("DEBUG: Access token expired. Redirecting to login...")
-        session.pop('access_token', None)  # Remove expired token
-        return redirect(url_for('start_auth'))  # Force user to re-authenticate
-
-    if init_response.status_code != 200:
-        return f"Failed to initialize video upload: {init_response.text}", 400
-
-    data = init_response.json()
-    upload_url = data.get("upload_url")
-    publish_id = data.get("publish_id")
-
-    # Step 2: Upload video
-    with open(video_path, "rb") as video_file:
-        upload_response = requests.put(
-            upload_url,
-            headers={
-                "Content-Type": "video/mp4",
-                "Content-Range": f"bytes 0-{video_size - 1}/{video_size}"
-            },
-            data=video_file
-        )
-
-    if upload_response.status_code != 200:
-        return f"Failed to upload video: {upload_response.text}", 400
-
-    # Step 3: Publish Video with Caption
-    publish_url = "https://open.tiktokapis.com/v2/post/publish/video/"
-    publish_payload = {
-        "publish_id": publish_id,
-        "post_info": {
-            "title": caption  # Use caption as title
-        }
-    }
-
-    publish_response = requests.post(publish_url, headers=headers, json=publish_payload)
-
-    if publish_response.status_code == 200:
-        return "Video uploaded successfully!", 200
+    if response.status_code == 200:
+        data = response.json()
+        session["access_token"] = data.get("access_token")  # Store token
+        session["refresh_token"] = data.get("refresh_token")  # Store refresh token
+        return f"Access Token: {session['access_token']}", 200
     else:
-        return f"Failed to publish video: {publish_response.text}", 400
+        return f"Failed to obtain access token: {response.text}", 400
 
-# Step 6: Confirm Upload Success
-@app.route('/upload-success')
-def upload_success():
-    return "Your video has been uploaded to TikTok successfully!"
-    
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
