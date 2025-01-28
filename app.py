@@ -148,7 +148,7 @@ def process_upload():
     # Send request to initialize upload
     app.logger.info("DEBUG: Payload being sent: %s", payload)
     init_response = requests.post(init_url, headers=headers, json=payload)
-    app.logger.info("DEBUG: TikTok API Response: %s", response.text)
+    app.logger.info("DEBUG: TikTok API Response: %s", init_response.text)
     response_data = init_response.json()
     
     if init_response.status_code == 200:
