@@ -2,6 +2,7 @@ from flask import Flask, redirect, request, render_template, url_for, session
 import requests
 import os
 import logging
+import math
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -134,14 +135,17 @@ def process_upload():
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
     video_size = os.path.getsize(video_path)  # Get file size
-    app.logger.info("DEBUG: Video size: %s bytes", video_size)
+    CHUNK_SIZE = 64 * 1024 * 1024  # TikTok allows a max of 64MB per chunk
+    TOTAL_CHUNKS = math.ceil(video_size / CHUNK_SIZE)
+    app.logger.info(f"DEBUG: Video size: {video_size} bytes, Chunk size: {CHUNK_SIZE}, Total Chunks: {TOTAL_CHUNKS}")
+
 
     payload = {
-        "source_info": {
-            "source": "FILE_UPLOAD",
-            "video_size": video_size,
-            "chunk_size": video_size,
-            "total_chunk_count": 1  # Single-chunk upload
+    "source_info": {
+        "source": "FILE_UPLOAD",
+        "video_size": video_size,
+        "chunk_size": CHUNK_SIZE,
+        "total_chunk_count": TOTAL_CHUNKS
         }
     }
 
@@ -158,11 +162,38 @@ def process_upload():
         session["upload_url"] = upload_url  # Store upload URL in session
         session["publish_id"] = publish_id  # Store publish ID in session
 
-        return jsonify({
-            "message": "Upload initialized!",
-            "upload_url": upload_url,
-            "publish_id": publish_id
-        })
+        # Upload the video in chunks
+        with open(video_path, "rb") as file:
+            for chunk_index in range(TOTAL_CHUNKS):
+                chunk = file.read(CHUNK_SIZE)
+                chunk_start = chunk_index * CHUNK_SIZE
+                chunk_end = min((chunk_index + 1) * CHUNK_SIZE - 1, video_size - 1)
+
+                upload_headers = {
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "video/mp4",
+                    "Content-Range": f"bytes {chunk_start}-{chunk_end}/{video_size}"
+                }
+
+                upload_response = requests.put(upload_url, headers=upload_headers, data=chunk)
+                app.logger.info(f"DEBUG: Uploading chunk {chunk_index + 1}/{TOTAL_CHUNKS}")
+
+                if upload_response.status_code != 200:
+                    return f"Failed to upload chunk {chunk_index + 1}: {upload_response.text}", 400
+
+        # Finalize the upload
+        publish_url = "https://open.tiktokapis.com/v2/post/publish/video/"
+        publish_payload = {
+            "publish_id": publish_id,
+            "post_info": {"title": caption}
+        }
+        publish_response = requests.post(publish_url, headers=headers, json=publish_payload)
+
+        if publish_response.status_code == 200:
+            return "Video uploaded successfully!", 200
+        else:
+            return f"Failed to publish video: {publish_response.text}", 400
+
     else:
         return f"Failed to initialize video upload: {response_data}", 400
 
