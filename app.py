@@ -2,7 +2,7 @@ from flask import Flask, redirect, request, render_template, url_for, session
 import requests
 import os
 import logging
-import math
+from math import ceil
 
 logging.basicConfig(level=logging.DEBUG)
 
