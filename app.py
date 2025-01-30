@@ -2,7 +2,6 @@ from flask import Flask, redirect, request, render_template, url_for, session
 import requests
 import os
 import logging
-from math import ceil
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -136,7 +135,7 @@ def process_upload():
 
     video_size = os.path.getsize(video_path)  # Get file size
     CHUNK_SIZE = min(64 * 1024 * 1024, video_size) # TikTok allows a max of 64MB per chunk
-    TOTAL_CHUNKS = ceil(video_size / CHUNK_SIZE)
+    TOTAL_CHUNKS = (video_size + CHUNK_SIZE - 1) // CHUNK_SIZE
 
     app.logger.info(f"DEBUG: Video size: {video_size} bytes, Chunk size: {CHUNK_SIZE}, Total Chunks: {TOTAL_CHUNKS}")
 
