@@ -135,10 +135,15 @@ def process_upload():
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
     video_size = os.path.getsize(video_path)  # Get file size
-    CHUNK_SIZE = video_size # 64 * 1024 * 1024  # TikTok allows a max of 64MB per chunk
+    CHUNK_SIZE = min(video_size, 64 * 1024 * 1024)  # TikTok allows a max of 64MB per chunk
     TOTAL_CHUNKS = video_size // CHUNK_SIZE
-    app.logger.info(f"DEBUG: Video size: {video_size} bytes, Chunk size: {CHUNK_SIZE}, Total Chunks: {TOTAL_CHUNKS}")
+    LAST_CHUNK_SIZE = video_size % CHUNK_SIZE  # Size of the last chunk
 
+    # If there's a remainder, increment TOTAL_CHUNKS
+    if LAST_CHUNK_SIZE > 0:
+        TOTAL_CHUNKS += 1
+    
+    app.logger.info(f"DEBUG: Video size: {video_size} bytes, Chunk size: {CHUNK_SIZE}, Total Chunks: {TOTAL_CHUNKS}")
 
     payload = {
     "source_info": {
@@ -165,9 +170,9 @@ def process_upload():
         # Upload the video in chunks
         with open(video_path, "rb") as file:
             for chunk_index in range(TOTAL_CHUNKS):
-                chunk = file.read(CHUNK_SIZE)
                 chunk_start = chunk_index * CHUNK_SIZE
                 chunk_end = min((chunk_index + 1) * CHUNK_SIZE - 1, video_size - 1)
+                chunk = file.read(CHUNK_SIZE if chunk_index < TOTAL_CHUNKS - 1 else LAST_CHUNK_SIZE)
 
                 upload_headers = {
                     "Authorization": f"Bearer {access_token}",
