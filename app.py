@@ -135,8 +135,8 @@ def process_upload():
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
     video_size = os.path.getsize(video_path)  # Get file size
-    CHUNK_SIZE = 64 * 1024 * 1024  # TikTok allows a max of 64MB per chunk
-    TOTAL_CHUNKS = math.ceil(video_size / CHUNK_SIZE)
+    CHUNK_SIZE = video_size # 64 * 1024 * 1024  # TikTok allows a max of 64MB per chunk
+    TOTAL_CHUNKS = video_size // CHUNK_SIZE
     app.logger.info(f"DEBUG: Video size: {video_size} bytes, Chunk size: {CHUNK_SIZE}, Total Chunks: {TOTAL_CHUNKS}")
 
 
