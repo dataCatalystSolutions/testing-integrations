@@ -135,14 +135,9 @@ def process_upload():
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
     video_size = os.path.getsize(video_path)  # Get file size
-    CHUNK_SIZE = min(video_size, 64 * 1024 * 1024)  # TikTok allows a max of 64MB per chunk
-    TOTAL_CHUNKS = video_size // CHUNK_SIZE
-    LAST_CHUNK_SIZE = video_size % CHUNK_SIZE  # Size of the last chunk
+    CHUNK_SIZE = min(64 * 1024 * 1024, video_size) # TikTok allows a max of 64MB per chunk
+    TOTAL_CHUNKS = ceil(video_size / CHUNK_SIZE)
 
-    # If there's a remainder, increment TOTAL_CHUNKS
-    if LAST_CHUNK_SIZE > 0:
-        TOTAL_CHUNKS += 1
-    
     app.logger.info(f"DEBUG: Video size: {video_size} bytes, Chunk size: {CHUNK_SIZE}, Total Chunks: {TOTAL_CHUNKS}")
 
     payload = {
@@ -153,11 +148,18 @@ def process_upload():
         "total_chunk_count": TOTAL_CHUNKS
         }
     }
-
+    
     # Send request to initialize upload
+    app.logger.info("DEBUG: Initializing upload with TikTok API")
+    app.logger.info("DEBUG: Headers being sent: %s", headers)
     app.logger.info("DEBUG: Payload being sent: %s", payload)
+    
     init_response = requests.post(init_url, headers=headers, json=payload)
-    app.logger.info("DEBUG: TikTok API Response: %s", init_response.text)
+    
+    # Debugging - Log TikTok API response
+    app.logger.info("DEBUG: TikTok API Response Status Code: %s", init_response.status_code)
+    app.logger.info("DEBUG: TikTok API Response Text: %s", init_response.text)    
+    
     response_data = init_response.json()
     
     if init_response.status_code == 200:
